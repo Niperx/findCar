@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Поиск габаритов автомобиля - Drom.ru Parser</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        input:disabled {
+            background-color: #f5f5f5;
+            cursor: not-allowed;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .results {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            display: none;
+        }
+
+        .results.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .results h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+
+        .dimension {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px;
+            margin-bottom: 10px;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .dimension-label {
+            color: #555;
+            font-weight: 600;
+        }
+
+        .dimension-value {
+            color: #333;
+            font-weight: 700;
+        }
+
+        .body-type-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .autocomplete {
+            position: relative;
+        }
+
+        .autocomplete-items {
+            position: absolute;
+            border: 2px solid #667eea;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            z-index: 99;
+            top: 100%;
+            left: 0;
+            right: 0;
+            max-height: 200px;
+            overflow-y: auto;
+            background: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .autocomplete-items div {
+            padding: 10px;
+            cursor: pointer;
+            background-color: #fff;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .autocomplete-items div:hover {
+            background-color: #f0f0f0;
+        }
+
+        .autocomplete-active {
+            background-color: #667eea !important;
+            color: white;
+        }
+
+        .error {
+            color: #e74c3c;
+            padding: 15px;
+            background: #fadbd8;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        .car-icon {
+            text-align: center;
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .source-link {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .source-link a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .source-link a:hover {
+            text-decoration: underline;
+        }
+
+        .hint {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="car-icon">🚗</div>
+        <h1>Поиск габаритов автомобиля</h1>
+        <div class="subtitle">Парсинг данных с drom.ru</div>
+
+        <form id="carForm" autocomplete="off">
+            <div class="form-group">
+                <label for="brand">Марка автомобиля:</label>
+                <div class="autocomplete">
+                    <input type="text" id="brand" placeholder="Начните вводить марку..." required>
+                </div>
+                <div class="hint">Например: Toyota, BMW, Subaru</div>
+            </div>
+
+            <div class="form-group">
+                <label for="model">Модель автомобиля:</label>
+                <div class="autocomplete">
+                    <input type="text" id="model" placeholder="Сначала выберите марку" required disabled>
+                </div>
+                <div class="hint">Например: Camry, X5, Impreza</div>
+            </div>
+
+            <button type="submit" id="submitBtn">Найти габариты</button>
+        </form>
+
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Загрузка данных с drom.ru...</p>
+        </div>
+
+        <div id="error" class="error"></div>
+
+        <div id="results" class="results">
+            <h2 id="carName"></h2>
+            <div id="dimensionsContainer"></div>
+            <div class="source-link">
+                <a id="sourceLink" href="#" target="_blank">Посмотреть на drom.ru</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // База популярных марок и моделей
+        const carDatabase = {
+            "Toyota": ["Camry", "Corolla", "RAV4", "Land Cruiser", "Prius", "Highlander", "4Runner", "Avalon", "Yaris", "Sienna"],
+            "BMW": ["3 Series", "5 Series", "X5", "X3", "7 Series", "X1", "M3", "M5", "X7", "4 Series"],
+            "Mercedes-Benz": ["C-Class", "E-Class", "GLE", "GLC", "S-Class", "A-Class", "CLA", "GLS", "GLB", "G-Class"],
+            "Audi": ["A4", "A6", "Q5", "Q7", "A3", "Q3", "A8", "Q8", "e-tron", "TT"],
+            "Volkswagen": ["Polo", "Golf", "Passat", "Tiguan", "Jetta", "Touareg", "Arteon", "Multivan", "Teramont"],
+            "Ford": ["Focus", "Mondeo", "Explorer", "Kuga", "Mustang", "F-150", "Ranger", "Fiesta", "Edge", "Escape"],
+            "Hyundai": ["Solaris", "Elantra", "Tucson", "Santa Fe", "Creta", "Sonata", "Kona", "Palisade", "i30", "i40"],
+            "Kia": ["Rio", "Optima", "Sportage", "Sorento", "Ceed", "Seltos", "Carnival", "Soul", "Stinger", "Picanto"],
+            "Mazda": ["3", "6", "CX-5", "CX-9", "CX-30", "CX-60", "MX-5", "2"],
+            "Nissan": ["Almera", "Qashqai", "X-Trail", "Murano", "Juke", "Pathfinder", "Note", "Patrol", "Leaf", "GT-R"],
+            "Lada": ["Vesta", "Granta", "Niva", "Largus"],
+            "Skoda": ["Octavia", "Superb", "Kodiaq", "Rapid", "Karoq", "Fabia", "Kamiq", "Scala"],
+            "Chevrolet": ["Cruze", "Tahoe", "Traverse", "Camaro", "Corvette", "Silverado", "Malibu", "Equinox"],
+            "Lexus": ["RX", "NX", "ES", "IS", "GX", "LX", "UX", "LS"],
+            "Subaru": ["Impreza", "Forester", "Outback", "XV", "Legacy", "WRX", "BRZ", "Ascent"],
+            "Honda": ["Civic", "Accord", "CR-V", "HR-V", "Jazz", "Pilot", "Odyssey", "Fit"],
+            "Renault": ["Duster", "Logan", "Sandero", "Kaptur", "Arkana", "Megane", "Clio", "Koleos"],
+            "Peugeot": ["3008", "308", "2008", "508", "5008", "208", "Rifter", "Traveller"],
+            "Citroen": ["C5 Aircross", "C3", "C4", "Berlingo", "SpaceTourer", "C-Elysee"],
+            "Mitsubishi": ["Outlander", "ASX", "Pajero", "Eclipse Cross", "L200", "Lancer"],
+            "Jeep": ["Wrangler", "Grand Cherokee", "Compass", "Cherokee", "Renegade", "Gladiator"],
+            "Volvo": ["XC90", "XC60", "XC40", "S60", "S90", "V60", "V90"],
+            "Porsche": ["911", "Cayenne", "Macan", "Panamera", "Taycan", "718 Boxster", "718 Cayman"]
+        };
+
+        const carForm = document.getElementById('carForm');
+        const brandInput = document.getElementById('brand');
+        const modelInput = document.getElementById('model');
+        const submitBtn = document.getElementById('submitBtn');
+        const loadingDiv = document.getElementById('loading');
+        const resultsDiv = document.getElementById('results');
+        const errorDiv = document.getElementById('error');
+        const dimensionsContainer = document.getElementById('dimensionsContainer');
+        const sourceLink = document.getElementById('sourceLink');
+
+        let selectedBrand = '';
+        let selectedModel = '';
+
+        // Функция автодополнения
+        function autocomplete(inp, arr, onSelect) {
+            let currentFocus;
+
+            inp.addEventListener('input', function(e) {
+                let val = this.value;
+                closeAllLists();
+                if (!val) return false;
+                currentFocus = -1;
+
+                const listDiv = document.createElement('div');
+                listDiv.setAttribute('id', this.id + 'autocomplete-list');
+                listDiv.setAttribute('class', 'autocomplete-items');
+                this.parentNode.appendChild(listDiv);
+
+                const matches = arr.filter(item =>
+                    item.toLowerCase().includes(val.toLowerCase())
+                );
+
+                matches.forEach(item => {
+                    const itemDiv = document.createElement('div');
+
+                    const matchIndex = item.toLowerCase().indexOf(val.toLowerCase());
+                    const beforeMatch = item.substr(0, matchIndex);
+                    const match = item.substr(matchIndex, val.length);
+                    const afterMatch = item.substr(matchIndex + val.length);
+
+                    itemDiv.innerHTML = beforeMatch + '<strong>' + match + '</strong>' + afterMatch;
+                    itemDiv.innerHTML += '<input type="hidden" value="' + item + '">';
+
+                    itemDiv.addEventListener('click', function(e) {
+                        inp.value = this.getElementsByTagName('input')[0].value;
+                        onSelect(inp.value);
+                        closeAllLists();
+                    });
+
+                    listDiv.appendChild(itemDiv);
+                });
+            });
+
+            inp.addEventListener('keydown', function(e) {
+                let x = document.getElementById(this.id + 'autocomplete-list');
+                if (x) x = x.getElementsByTagName('div');
+
+                if (e.keyCode == 40) { // Down
+                    currentFocus++;
+                    addActive(x);
+                } else if (e.keyCode == 38) { // Up
+                    currentFocus--;
+                    addActive(x);
+                } else if (e.keyCode == 13) { // Enter
+                    e.preventDefault();
+                    if (currentFocus > -1) {
+                        if (x) x[currentFocus].click();
+                    }
+                }
+            });
+
+            function addActive(x) {
+                if (!x) return false;
+                removeActive(x);
+                if (currentFocus >= x.length) currentFocus = 0;
+                if (currentFocus < 0) currentFocus = (x.length - 1);
+                x[currentFocus].classList.add('autocomplete-active');
+            }
+
+            function removeActive(x) {
+                for (let i = 0; i < x.length; i++) {
+                    x[i].classList.remove('autocomplete-active');
+                }
+            }
+
+            function closeAllLists(elmnt) {
+                const items = document.getElementsByClassName('autocomplete-items');
+                for (let i = 0; i < items.length; i++) {
+                    if (elmnt != items[i] && elmnt != inp) {
+                        items[i].parentNode.removeChild(items[i]);
+                    }
+                }
+            }
+
+            document.addEventListener('click', function (e) {
+                closeAllLists(e.target);
+            });
+        }
+
+        // Инициализация автодополнения для марки
+        const brands = Object.keys(carDatabase).sort();
+        autocomplete(brandInput, brands, function(brand) {
+            selectedBrand = brand;
+            modelInput.disabled = false;
+            modelInput.value = '';
+            modelInput.placeholder = 'Начните вводить модель...';
+            selectedModel = '';
+            resultsDiv.classList.remove('show');
+            errorDiv.classList.remove('show');
+
+            // Инициализация автодополнения для модели
+            if (carDatabase[brand]) {
+                const models = carDatabase[brand].sort();
+                autocomplete(modelInput, models, function(model) {
+                    selectedModel = model;
+                });
+            }
+        });
+
+        // Очистка поля модели при изменении марки
+        brandInput.addEventListener('input', function() {
+            if (this.value !== selectedBrand) {
+                modelInput.value = '';
+                modelInput.disabled = true;
+                modelInput.placeholder = 'Сначала выберите марку';
+                selectedModel = '';
+                resultsDiv.classList.remove('show');
+            }
+        });
+
+        carForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const brand = brandInput.value.trim();
+            const model = modelInput.value.trim();
+
+            if (!brand || !model) {
+                showError('Пожалуйста, заполните марку и модель автомобиля');
+                return;
+            }
+
+            // Показываем загрузку
+            loadingDiv.classList.add('show');
+            resultsDiv.classList.remove('show');
+            errorDiv.classList.remove('show');
+            submitBtn.disabled = true;
+
+            try {
+                const response = await fetch('/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ brand, model })
+                });
+
+                const data = await response.json();
+
+                loadingDiv.classList.remove('show');
+                submitBtn.disabled = false;
+
+                if (data.success) {
+                    showResults(brand, model, data.data, data.url);
+                } else {
+                    showError(data.error || 'Не удалось получить данные');
+                }
+            } catch (error) {
+                loadingDiv.classList.remove('show');
+                submitBtn.disabled = false;
+                showError('Ошибка соединения с сервером');
+            }
+        });
+
+        function showResults(brand, model, data, url) {
+            document.getElementById('carName').textContent = `${capitalize(brand)} ${capitalize(model)}`;
+
+            dimensionsContainer.innerHTML = '';
+
+            // Добавляем бейдж с типом кузова, если есть
+            if (data.body_type) {
+                const bodyTypeBadge = document.createElement('div');
+                bodyTypeBadge.className = 'body-type-badge';
+                bodyTypeBadge.textContent = data.body_type;
+                dimensionsContainer.appendChild(bodyTypeBadge);
+            }
+
+            const labels = {
+                'length': 'Длина',
+                'width': 'Ширина',
+                'height': 'Высота',
+                'weight': 'Масса'
+            };
+
+            const units = {
+                'length': 'мм',
+                'width': 'мм',
+                'height': 'мм',
+                'weight': 'кг'
+            };
+
+            for (const [key, value] of Object.entries(data)) {
+                // Пропускаем body_type, так как он уже отображен как бейдж
+                if (key === 'body_type') continue;
+
+                const dimensionDiv = document.createElement('div');
+                dimensionDiv.className = 'dimension';
+
+                const labelSpan = document.createElement('span');
+                labelSpan.className = 'dimension-label';
+                labelSpan.textContent = labels[key] || key;
+
+                const valueSpan = document.createElement('span');
+                valueSpan.className = 'dimension-value';
+                valueSpan.textContent = `${value} ${units[key] || ''}`;
+
+                dimensionDiv.appendChild(labelSpan);
+                dimensionDiv.appendChild(valueSpan);
+                dimensionsContainer.appendChild(dimensionDiv);
+            }
+
+            sourceLink.href = url;
+
+            errorDiv.classList.remove('show');
+            resultsDiv.classList.add('show');
+        }
+
+        function showError(message) {
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+            resultsDiv.classList.remove('show');
+        }
+
+        function capitalize(str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+    </script>
+</body>
+</html>
