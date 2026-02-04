@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m venv:*)",
+      "WebFetch(domain:www.drom.ru)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nInitial commit: FindCar - Web scraper for car dimensions from drom.ru\n\nFeatures:\n- Flask web application with car dimensions parser\n- Web scraping from drom.ru using BeautifulSoup\n- Automatic car classification by dimensions \\(10 categories\\)\n- Autocomplete for car brands and models \\(23 brands, 200+ models\\)\n- Docker support with Dockerfile and docker-compose\n- Windows setup scripts \\(setup.bat, run.bat\\)\n- Modern UI with animations\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(gh:*)"
+    ]
+  }
+}

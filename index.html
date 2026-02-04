@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Поиск габаритов автомобиля</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 28px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        select, input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .results {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            display: none;
+        }
+
+        .results.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .results h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+
+        .dimension {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px;
+            margin-bottom: 10px;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .dimension-label {
+            color: #555;
+            font-weight: 600;
+        }
+
+        .dimension-value {
+            color: #333;
+            font-weight: 700;
+        }
+
+        .error {
+            color: #e74c3c;
+            padding: 15px;
+            background: #fadbd8;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        .car-icon {
+            text-align: center;
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+
+        .autocomplete {
+            position: relative;
+        }
+
+        .autocomplete-items {
+            position: absolute;
+            border: 2px solid #667eea;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            z-index: 99;
+            top: 100%;
+            left: 0;
+            right: 0;
+            max-height: 200px;
+            overflow-y: auto;
+            background: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .autocomplete-items div {
+            padding: 10px;
+            cursor: pointer;
+            background-color: #fff;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .autocomplete-items div:hover {
+            background-color: #f0f0f0;
+        }
+
+        .autocomplete-active {
+            background-color: #667eea !important;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="car-icon">🚗</div>
+        <h1>Поиск габаритов автомобиля</h1>
+
+        <form id="carForm" autocomplete="off">
+            <div class="form-group">
+                <label for="brand">Марка автомобиля:</label>
+                <div class="autocomplete">
+                    <input type="text" id="brand" placeholder="Начните вводить марку..." required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="model">Модель автомобиля:</label>
+                <div class="autocomplete">
+                    <input type="text" id="model" placeholder="Сначала выберите марку" required disabled>
+                </div>
+            </div>
+
+            <button type="submit">Найти габариты</button>
+        </form>
+
+        <div id="error" class="error"></div>
+
+        <div id="results" class="results">
+            <h2 id="carName"></h2>
+            <div class="dimension">
+                <span class="dimension-label">Длина:</span>
+                <span class="dimension-value" id="length"></span>
+            </div>
+            <div class="dimension">
+                <span class="dimension-label">Ширина:</span>
+                <span class="dimension-value" id="width"></span>
+            </div>
+            <div class="dimension">
+                <span class="dimension-label">Высота:</span>
+                <span class="dimension-value" id="height"></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // База данных автомобилей с габаритами
+        const carDatabase = {
+            "Toyota": {
+                "Camry": { length: 4885, width: 1840, height: 1445, wheelbase: 2825 },
+                "Corolla": { length: 4630, width: 1780, height: 1435, wheelbase: 2700 },
+                "RAV4": { length: 4600, width: 1855, height: 1685, wheelbase: 2690 },
+                "Land Cruiser": { length: 4950, width: 1980, height: 1880, wheelbase: 2850 }
+            },
+            "BMW": {
+                "3 Series": { length: 4709, width: 1827, height: 1442, wheelbase: 2851 },
+                "5 Series": { length: 4935, width: 1868, height: 1466, wheelbase: 2975 },
+                "X5": { length: 4922, width: 2004, height: 1745, wheelbase: 2975 },
+                "X3": { length: 4708, width: 1891, height: 1676, wheelbase: 2864 }
+            },
+            "Mercedes-Benz": {
+                "C-Class": { length: 4751, width: 1820, height: 1438, wheelbase: 2865 },
+                "E-Class": { length: 4923, width: 1852, height: 1468, wheelbase: 2939 },
+                "GLE": { length: 4924, width: 1947, height: 1772, wheelbase: 2995 },
+                "GLC": { length: 4656, width: 1890, height: 1639, wheelbase: 2873 }
+            },
+            "Audi": {
+                "A4": { length: 4762, width: 1847, height: 1428, wheelbase: 2820 },
+                "A6": { length: 4939, width: 1886, height: 1457, wheelbase: 2924 },
+                "Q5": { length: 4663, width: 1893, height: 1659, wheelbase: 2819 },
+                "Q7": { length: 5052, width: 1970, height: 1741, wheelbase: 2994 }
+            },
+            "Volkswagen": {
+                "Polo": { length: 4053, width: 1751, height: 1446, wheelbase: 2564 },
+                "Golf": { length: 4284, width: 1789, height: 1456, wheelbase: 2631 },
+                "Passat": { length: 4767, width: 1832, height: 1456, wheelbase: 2791 },
+                "Tiguan": { length: 4486, width: 1839, height: 1632, wheelbase: 2681 }
+            },
+            "Ford": {
+                "Focus": { length: 4378, width: 1825, height: 1454, wheelbase: 2648 },
+                "Mondeo": { length: 4871, width: 1852, height: 1482, wheelbase: 2850 },
+                "Explorer": { length: 5050, width: 2004, height: 1778, wheelbase: 3025 },
+                "Kuga": { length: 4614, width: 1882, height: 1677, wheelbase: 2710 }
+            },
+            "Hyundai": {
+                "Solaris": { length: 4405, width: 1729, height: 1470, wheelbase: 2600 },
+                "Elantra": { length: 4680, width: 1825, height: 1445, wheelbase: 2720 },
+                "Tucson": { length: 4500, width: 1850, height: 1650, wheelbase: 2680 },
+                "Santa Fe": { length: 4785, width: 1900, height: 1710, wheelbase: 2765 }
+            },
+            "Kia": {
+                "Rio": { length: 4405, width: 1740, height: 1470, wheelbase: 2600 },
+                "Optima": { length: 4855, width: 1860, height: 1465, wheelbase: 2805 },
+                "Sportage": { length: 4515, width: 1855, height: 1645, wheelbase: 2670 },
+                "Sorento": { length: 4810, width: 1900, height: 1695, wheelbase: 2815 }
+            },
+            "Mazda": {
+                "3": { length: 4460, width: 1795, height: 1440, wheelbase: 2725 },
+                "6": { length: 4865, width: 1840, height: 1450, wheelbase: 2830 },
+                "CX-5": { length: 4575, width: 1845, height: 1690, wheelbase: 2700 },
+                "CX-9": { length: 5065, width: 1969, height: 1747, wheelbase: 2930 }
+            },
+            "Nissan": {
+                "Almera": { length: 4656, width: 1695, height: 1522, wheelbase: 2700 },
+                "Qashqai": { length: 4394, width: 1806, height: 1590, wheelbase: 2646 },
+                "X-Trail": { length: 4690, width: 1820, height: 1740, wheelbase: 2705 },
+                "Murano": { length: 4897, width: 1915, height: 1730, wheelbase: 2825 }
+            },
+            "Lada": {
+                "Vesta": { length: 4410, width: 1764, height: 1497, wheelbase: 2635 },
+                "Granta": { length: 4260, width: 1700, height: 1500, wheelbase: 2476 },
+                "Niva": { length: 3740, width: 1680, height: 1640, wheelbase: 2200 },
+                "Largus": { length: 4470, width: 1750, height: 1670, wheelbase: 2905 }
+            },
+            "Skoda": {
+                "Octavia": { length: 4689, width: 1829, height: 1469, wheelbase: 2686 },
+                "Superb": { length: 4869, width: 1864, height: 1469, wheelbase: 2841 },
+                "Kodiaq": { length: 4697, width: 1882, height: 1676, wheelbase: 2791 },
+                "Rapid": { length: 4483, width: 1706, height: 1461, wheelbase: 2602 }
+            }
+        };
+
+        const brandInput = document.getElementById('brand');
+        const modelInput = document.getElementById('model');
+        const carForm = document.getElementById('carForm');
+        const resultsDiv = document.getElementById('results');
+        const errorDiv = document.getElementById('error');
+
+        let selectedBrand = '';
+        let selectedModel = '';
+        let currentFocus = -1;
+
+        // Функция автодополнения
+        function autocomplete(inp, arr, onSelect) {
+            let currentFocus;
+
+            inp.addEventListener('input', function(e) {
+                let val = this.value;
+                closeAllLists();
+                if (!val) return false;
+                currentFocus = -1;
+
+                const listDiv = document.createElement('div');
+                listDiv.setAttribute('id', this.id + 'autocomplete-list');
+                listDiv.setAttribute('class', 'autocomplete-items');
+                this.parentNode.appendChild(listDiv);
+
+                const matches = arr.filter(item =>
+                    item.toLowerCase().includes(val.toLowerCase())
+                );
+
+                matches.forEach(item => {
+                    const itemDiv = document.createElement('div');
+
+                    const matchIndex = item.toLowerCase().indexOf(val.toLowerCase());
+                    const beforeMatch = item.substr(0, matchIndex);
+                    const match = item.substr(matchIndex, val.length);
+                    const afterMatch = item.substr(matchIndex + val.length);
+
+                    itemDiv.innerHTML = beforeMatch + '<strong>' + match + '</strong>' + afterMatch;
+                    itemDiv.innerHTML += '<input type="hidden" value="' + item + '">';
+
+                    itemDiv.addEventListener('click', function(e) {
+                        inp.value = this.getElementsByTagName('input')[0].value;
+                        onSelect(inp.value);
+                        closeAllLists();
+                    });
+
+                    listDiv.appendChild(itemDiv);
+                });
+            });
+
+            inp.addEventListener('keydown', function(e) {
+                let x = document.getElementById(this.id + 'autocomplete-list');
+                if (x) x = x.getElementsByTagName('div');
+
+                if (e.keyCode == 40) { // Down
+                    currentFocus++;
+                    addActive(x);
+                } else if (e.keyCode == 38) { // Up
+                    currentFocus--;
+                    addActive(x);
+                } else if (e.keyCode == 13) { // Enter
+                    e.preventDefault();
+                    if (currentFocus > -1) {
+                        if (x) x[currentFocus].click();
+                    }
+                }
+            });
+
+            function addActive(x) {
+                if (!x) return false;
+                removeActive(x);
+                if (currentFocus >= x.length) currentFocus = 0;
+                if (currentFocus < 0) currentFocus = (x.length - 1);
+                x[currentFocus].classList.add('autocomplete-active');
+            }
+
+            function removeActive(x) {
+                for (let i = 0; i < x.length; i++) {
+                    x[i].classList.remove('autocomplete-active');
+                }
+            }
+
+            function closeAllLists(elmnt) {
+                const items = document.getElementsByClassName('autocomplete-items');
+                for (let i = 0; i < items.length; i++) {
+                    if (elmnt != items[i] && elmnt != inp) {
+                        items[i].parentNode.removeChild(items[i]);
+                    }
+                }
+            }
+
+            document.addEventListener('click', function (e) {
+                closeAllLists(e.target);
+            });
+        }
+
+        // Инициализация автодополнения для марки
+        const brands = Object.keys(carDatabase).sort();
+        autocomplete(brandInput, brands, function(brand) {
+            selectedBrand = brand;
+            modelInput.disabled = false;
+            modelInput.value = '';
+            modelInput.placeholder = 'Начните вводить модель...';
+            selectedModel = '';
+            resultsDiv.classList.remove('show');
+            errorDiv.classList.remove('show');
+
+            // Инициализация автодополнения для модели
+            const models = Object.keys(carDatabase[brand]).sort();
+            autocomplete(modelInput, models, function(model) {
+                selectedModel = model;
+            });
+        });
+
+        // Обработчик отправки формы
+        carForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const brand = brandInput.value;
+            const model = modelInput.value;
+
+            // Проверка на существование марки
+            if (!carDatabase[brand]) {
+                showError('Такая марка не найдена. Пожалуйста, выберите из предложенных вариантов.');
+                return;
+            }
+
+            // Проверка на существование модели
+            if (!carDatabase[brand][model]) {
+                showError('Такая модель не найдена. Пожалуйста, выберите из предложенных вариантов.');
+                return;
+            }
+
+            const carData = carDatabase[brand][model];
+            showResults(brand, model, carData);
+        });
+
+        // Показать результаты
+        function showResults(brand, model, data) {
+            document.getElementById('carName').textContent = `${brand} ${model}`;
+            document.getElementById('length').textContent = `${data.length} мм`;
+            document.getElementById('width').textContent = `${data.width} мм`;
+            document.getElementById('height').textContent = `${data.height} мм`;
+
+            errorDiv.classList.remove('show');
+            resultsDiv.classList.add('show');
+        }
+
+        // Показать ошибку
+        function showError(message) {
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+            resultsDiv.classList.remove('show');
+        }
+
+        // Очистка поля модели при изменении марки
+        brandInput.addEventListener('input', function() {
+            if (this.value !== selectedBrand) {
+                modelInput.value = '';
+                modelInput.disabled = true;
+                modelInput.placeholder = 'Сначала выберите марку';
+                selectedModel = '';
+                resultsDiv.classList.remove('show');
+            }
+        });
+    </script>
+</body>
+</html>
